@@ -1,6 +1,11 @@
 from flask import Flask, request, jsonify, render_template
+from datetime import datetime
+import os
 
 app = Flask(__name__)
+
+# Store history in memory
+history = []
 
 def classify(pga):
     if pga < 0.05:
@@ -22,7 +27,19 @@ def index():
 def analyze():
     data = request.json
     pga = float(data["pga"])
-    return jsonify({"intensity": classify(pga)})
+    intensity = classify(pga)
+
+    history.append({
+        "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "pga": round(pga, 3),
+        "intensity": intensity
+    })
+
+    return jsonify({"intensity": intensity})
+
+@app.route("/history")
+def get_history():
+    return jsonify(history[-20:])
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
